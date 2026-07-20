@@ -63,12 +63,10 @@ bool QoiEncode(uint32_t width, uint32_t height, uint8_t channels, uint8_t colors
     memset(history, 0, sizeof(history));
 
     uint8_t r, g, b, a;
-    a = 255u;
-    uint8_t pre_r, pre_g, pre_b, pre_a;
-    pre_r = 0u;
-    pre_g = 0u;
-    pre_b = 0u;
-    pre_a = 255u;
+    uint8_t pre_r = 0u;
+    uint8_t pre_g = 0u;
+    uint8_t pre_b = 0u;
+    uint8_t pre_a = 255u;
 
     for (int i = 0; i < px_num; ++i) {
         r = QoiReadU8();
@@ -80,6 +78,8 @@ bool QoiEncode(uint32_t width, uint32_t height, uint8_t channels, uint8_t colors
         if (channels == 4) {
             a = QoiReadU8();
             if (std::cin.eof()) return false;
+        } else {
+            a = 255u;
         }
 
         // Check for RUN
@@ -203,8 +203,12 @@ bool QoiDecode(uint32_t &width, uint32_t &height, uint8_t &channels, uint8_t &co
             b = QoiReadU8();
             if (std::cin.eof()) return false;
             // For RGB images, alpha is always 255
-            if (channels == 3) a = 255;
-            // For RGBA images, a remains unchanged (from previous pixel)
+            if (channels == 3) {
+                a = 255;
+            } else {
+                // For RGBA images, alpha remains unchanged from previous pixel
+                a = pre_a;
+            }
         } else if (op == QOI_OP_RGBA_TAG) {
             r = QoiReadU8();
             if (std::cin.eof()) return false;
@@ -253,9 +257,8 @@ bool QoiDecode(uint32_t &width, uint32_t &height, uint8_t &channels, uint8_t &co
                     QoiWriteU8(pre_g);
                     QoiWriteU8(pre_b);
                     if (channels == 4) QoiWriteU8(pre_a);
-                    i++;
                 }
-                i--; // Adjust because for loop will increment
+                i += run - 1; // -1 because for loop will increment i
                 continue;
             } else {
                 // Invalid tag
